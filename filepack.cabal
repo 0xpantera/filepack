@@ -127,4 +127,5 @@ test-suite filepack-test
     -- Test dependencies.
     build-depends:
         base ^>=4.17.2.1,
-        filepack
+        filepack,
+        bytestring
