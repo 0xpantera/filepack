@@ -6,6 +6,8 @@ import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BC
 import qualified Data.ByteString.Base64 as B64
 import Data.Word
+import Data.Text (Text)
+import qualified Data.Text as T
 import System.Posix.Types (FileMode, CMode(..))
 import Text.Read (readEither)
 
@@ -26,3 +28,4 @@ packFiles filePack =
 unpackFiles :: ByteString -> Either String FilePack
 unpackFiles serializedData =
   B64.decode serializedData >>= readEither . BC.unpack
+
