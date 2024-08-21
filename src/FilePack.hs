@@ -11,11 +11,17 @@ import qualified Data.Text as T
 import System.Posix.Types (FileMode, CMode(..))
 import Text.Read (readEither)
 
+data FileContents 
+  = StringFileContents String
+  | TextFileContents Text
+  | ByteStringFileContents ByteString
+  deriving (Eq, Read, Show)
+
 data FileData = FileData
   { fileName        :: FilePath
   , fileSize        :: Word32
   , filePermissions :: FileMode
-  , fileData        :: ByteString
+  , fileData        :: FileContents
   } deriving (Eq, Read, Show)
 
 newtype FilePack = FilePack { getPackedFiles :: [FileData] }
@@ -29,3 +35,9 @@ unpackFiles :: ByteString -> Either String FilePack
 unpackFiles serializedData =
   B64.decode serializedData >>= readEither . BC.unpack
 
+sampleFilePack :: FilePack
+sampleFilePack = FilePack $
+  [ FileData "stringFile" 0 0 $ StringFileContents "hello String"
+  , FileData "textFile" 0 0 $ TextFileContents "hello text"
+  , FileData "binaryFile" 0 0 $ ByteStringFileContents "hello Bytestring"
+  ]

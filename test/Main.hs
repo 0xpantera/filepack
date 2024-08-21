@@ -1,7 +1,7 @@
 module Main (main) where
 
 import FilePack
-import qualified Data.ByteString as BS
+import Data.ByteString (ByteString)
 
 main :: IO ()
 main = putStrLn "Test suite not yet implemented."
