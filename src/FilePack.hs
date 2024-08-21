@@ -1,12 +1,15 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleInstances #-}
 module FilePack where
 
+import Data.Bits ((.&.), (.|.), shift)
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BC
 import qualified Data.ByteString.Base64 as B64
 import Data.Word
 import Data.Text (Text)
+import Data.Text.Encoding (encodeUtf8, decodeUtf8)
 import qualified Data.Text as T
 import System.Posix.Types (FileMode, CMode(..))
 import Text.Read (readEither)
@@ -41,3 +44,69 @@ sampleFilePack = FilePack $
   , FileData "textFile" 0 0 $ TextFileContents "hello text"
   , FileData "binaryFile" 0 0 $ ByteStringFileContents "hello Bytestring"
   ]
+
+class Encode a where
+  encode :: a -> ByteString
+
+class Decode a where
+  decode :: ByteString -> Either String a
+
+instance Encode ByteString where
+  encode = id
+
+instance Decode ByteString where
+  decode = Right . id
+
+instance Encode Text where
+  encode = encodeUtf8
+
+instance Decode Text where
+  decode = Right . decodeUtf8
+
+instance Encode String where
+  encode = BC.pack
+
+instance Decode String where
+  decode = Right . BC.unpack
+
+instance Encode Word32 where
+  encode = word32ToByteString
+
+instance Decode Word32 where
+  decode = bytestringToWord32
+
+word32ToBytes :: Word32 -> (Word8, Word8, Word8, Word8)
+word32ToBytes word =
+  let a = fromIntegral $ 255 .&. word
+      b = fromIntegral $ 255 .&. (shift word (-8))
+      c = fromIntegral $ 255 .&. (shift word (-16))
+      d = fromIntegral $ 255 .&. (shift word (-24))
+    in (a, b, c, d)
+
+word32ToByteString :: Word32 -> ByteString
+word32ToByteString word =
+  let (a,b,c,d) = word32ToBytes word
+  in BS.pack [a,b,c,d]
+
+consWord32 :: Word32 -> ByteString -> ByteString
+consWord32 word bytestring =
+  let packedWord = word32ToByteString word
+  in packedWord <> bytestring
+
+word32FromBytes :: (Word8, Word8, Word8, Word8) -> Word32
+word32FromBytes (a,b,c,d) =
+  let
+    a' = fromIntegral a
+    b' = shift (fromIntegral b) 8
+    c' = shift (fromIntegral c) 16
+    d' = shift (fromIntegral d) 24
+  in a' .|. b' .|. c' .|. d'
+
+bytestringToWord32 :: ByteString -> Either String Word32
+bytestringToWord32 bytestring =
+  case BS.unpack bytestring of
+    [a,b,c,d] -> Right $ word32FromBytes (a,b,c,d)
+    _otherwise ->
+      let l = show $ BS.length bytestring
+      in Left ("Expecting 4 bytes but got " <> l)
+
