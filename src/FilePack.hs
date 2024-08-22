@@ -75,6 +75,43 @@ instance Encode Word32 where
 instance Decode Word32 where
   decode = bytestringToWord32
 
+instance Encode Word16 where
+  encode = word16ToByteString
+
+instance Decode Word16 where
+  decode = bytestringToWord16
+
+word16ToBytes :: Word16 -> (Word8, Word8)
+word16ToBytes word =
+  let a = fromIntegral $ 255 .&. word
+      b = fromIntegral $ 255 .&. (shift word (-8))
+  in (a, b)
+
+word16ToByteString :: Word16 -> ByteString
+word16ToByteString word =
+  let (a,b) = word16ToBytes word
+  in BS.pack [a,b]
+
+consWord16 :: Word16 -> ByteString -> ByteString
+consWord16 word bytestring =
+  let packedWord = word16ToByteString word
+  in packedWord <> bytestring
+
+word16FromBytes :: (Word8, Word8) -> Word16
+word16FromBytes (a,b) =
+  let
+    a' = fromIntegral a
+    b' = shift (fromIntegral b) 8
+  in a' .|. b'
+
+bytestringToWord16 :: ByteString -> Either String Word16
+bytestringToWord16 bytestring =
+  case BS.unpack bytestring of
+    [a,b] -> Right $ word16FromBytes (a,b)
+    _otherwise ->
+      let l = show $ BS.length bytestring
+      in Left ("Expecting 2 bytes but got " <> l)
+
 word32ToBytes :: Word32 -> (Word8, Word8, Word8, Word8)
 word32ToBytes word =
   let a = fromIntegral $ 255 .&. word
@@ -109,4 +146,10 @@ bytestringToWord32 bytestring =
     _otherwise ->
       let l = show $ BS.length bytestring
       in Left ("Expecting 4 bytes but got " <> l)
+
+instance Encode FileMode where
+  encode (CMode fMode) = encode fMode
+
+instance Decode FileMode where
+  decode = fmap CMode . decode
 
