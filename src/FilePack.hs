@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE RecordWildCards #-}
 module FilePack where
 
 import Data.Bits ((.&.), (.|.), shift)
@@ -14,39 +15,42 @@ import qualified Data.Text as T
 import System.Posix.Types (FileMode, CMode(..))
 import Text.Read (readEither)
 
-data FileContents 
-  = StringFileContents String
-  | TextFileContents Text
-  | ByteStringFileContents ByteString
-  deriving (Eq, Read, Show)
-
-data FileData = FileData
+data FileData a = FileData
   { fileName        :: FilePath
   , fileSize        :: Word32
   , filePermissions :: FileMode
-  , fileData        :: FileContents
+  , fileData        :: a
   } deriving (Eq, Read, Show)
 
-newtype FilePack = FilePack { getPackedFiles :: [FileData] }
+newtype FilePack a = FilePack { getPackedFiles :: [FileData a] }
   deriving (Eq, Read, Show)
 
-packFiles :: FilePack -> ByteString
-packFiles filePack = 
-  B64.encode . BC.pack . show $ filePack
+--packFiles :: FilePack -> ByteString
+--packFiles filePack = 
+--  B64.encode . BC.pack . show $ filePack
 
-unpackFiles :: ByteString -> Either String FilePack
-unpackFiles serializedData =
-  B64.decode serializedData >>= readEither . BC.unpack
+--unpackFiles :: ByteString -> Either String FilePack
+--unpackFiles serializedData =
+--  B64.decode serializedData >>= readEither . BC.unpack
 
-sampleFilePack :: FilePack
-sampleFilePack = FilePack $
-  [ FileData "stringFile" 0 0 $ StringFileContents "hello String"
-  , FileData "textFile" 0 0 $ TextFileContents "hello text"
-  , FileData "binaryFile" 0 0 $ ByteStringFileContents "hello Bytestring"
-  ]
+
+--sampleFilePack :: FilePack
+--sampleFilePack = FilePack $
+--  [ FileData "stringFile" 0 0 $ StringFileContents "hello String"
+--  , FileData "textFile" 0 0 $ TextFileContents "hello text"
+--  , FileData "binaryFile" 0 0 $ ByteStringFileContents "hello Bytestring"
+--  ]
 
 class Encode a where
   encode :: a -> ByteString
+  encode = BS.drop 4 . encodeWithSize
+
+  encodeWithSize :: a -> ByteString
+  encodeWithSize a =
+    let s = encode a
+        l = fromIntegral $ BS.length s
+    in word32ToByteString l <> s
+  {-# MINIMAL encode | encodeWithSize #-}
 
 class Decode a where
   decode :: ByteString -> Either String a
@@ -71,12 +75,20 @@ instance Decode String where
 
 instance Encode Word32 where
   encode = word32ToByteString
+  encodeWithSize w = 
+    let (a,b,c,d) = word32ToBytes w
+    in BS.pack [ 4, 0, 0, 0
+               , a, b, c, d ]
 
 instance Decode Word32 where
   decode = bytestringToWord32
 
 instance Encode Word16 where
   encode = word16ToByteString
+  encodeWithSize w =
+    let (a,b) = word16ToBytes w
+    in BS.pack [ 2, 0
+               , a, b ]
 
 instance Decode Word16 where
   decode = bytestringToWord16
@@ -152,4 +164,26 @@ instance Encode FileMode where
 
 instance Decode FileMode where
   decode = fmap CMode . decode
+
+instance Encode a => Encode (FileData a) where
+  encode FileData{..} =
+    let
+      encodedFileName = encodeWithSize fileName
+      encodedFileSize = encodeWithSize fileSize
+      encodedFilePermissions = encodeWithSize filePermissions
+      encodedFileData = encodeWithSize fileData
+      encodedData =
+        encodedFileName
+        <> encodedFileSize
+        <> encodedFilePermissions
+        <> encodedFileData
+      in encode encodedData
+
+instance (Encode a, Encode b) => Encode (a,b) where
+  encode (a,b) = 
+    encode $ encodeWithSize a <> encodeWithSize b
+
+-- OVERLAPPABLE because of conflict with String instance
+instance {-# OVERLAPPABLE #-} Encode a => Encode [a] where
+  encode = encode . foldMap encodeWithSize
 

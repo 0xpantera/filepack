@@ -1,4 +1,4 @@
-module Main (main) where
+module Main where
 
 import FilePack
 import Data.ByteString (ByteString)
