@@ -1,6 +1,11 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
 module FilePack where
 
 import Data.Bits ((.&.), (.|.), shift)
@@ -22,8 +27,48 @@ data FileData a = FileData
   , fileData        :: a
   } deriving (Eq, Read, Show)
 
-newtype FilePack a = FilePack { getPackedFiles :: [FileData a] }
-  deriving (Eq, Read, Show)
+newtype FilePack = FilePack [Packable]
+
+data Packable = forall a. Encode a => Packable { getPackable :: FileData a }
+
+instance Encode Packable where
+  encode (Packable p) = encode p
+
+instance Encode FilePack where
+  encode (FilePack p) = encode p
+
+addFileDataToPack :: Encode a => FileData a -> FilePack -> FilePack
+addFileDataToPack a (FilePack as) = FilePack $ (Packable a) : as
+
+infixr 6 .:
+(.:) :: (Encode a) => FileData a -> FilePack -> FilePack
+(.:) = addFileDataToPack
+
+emptyFilePack :: FilePack
+emptyFilePack = FilePack []
+
+testEncodeValue :: ByteString
+testEncodeValue =
+  let
+    a = FileData
+      { fileName = "a"
+      , fileSize = 3
+      , filePermissions = 0755
+      , fileData = "foo" :: String
+      }
+    b = FileData
+      { fileName = "b"
+      , fileSize = 10
+      , filePermissions = 0644
+      , fileData = ["hello", "world"] :: [Text]
+      }
+    c = FileData
+      { fileName = "c"
+      , fileSize = 8
+      , filePermissions = 0644
+      , fileData = (0, "zero") :: (Word32, String)
+      }
+  in encode $ a .: b .: c .: emptyFilePack
 
 --packFiles :: FilePack -> ByteString
 --packFiles filePack = 
@@ -186,4 +231,3 @@ instance (Encode a, Encode b) => Encode (a,b) where
 -- OVERLAPPABLE because of conflict with String instance
 instance {-# OVERLAPPABLE #-} Encode a => Encode [a] where
   encode = encode . foldMap encodeWithSize
-
