@@ -11,6 +11,7 @@ import Data.Text (Text)
 import Data.Text.Encoding (encodeUtf8)
 import System.Posix.Types (FileMode, CMode(..))
 
+
 class Encode a where
   encode :: a -> ByteString
   encode = BS.drop 4 . encodeWithSize
@@ -32,8 +33,8 @@ instance Encode String where
   encode = BC.pack
 
 instance Encode FileMode where
-  encode (CMode fMode) = encode fMode
-  encodeWithSize (CMode fMode) = encodeWithSize fMode
+  encode fMode = encode (fromIntegral fMode :: Word32)
+  encodeWithSize fMode = encodeWithSize (fromIntegral fMode :: Word32)
 
 instance Encode Word32 where
   encode = word32ToByteString

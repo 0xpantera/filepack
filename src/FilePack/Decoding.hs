@@ -35,7 +35,10 @@ instance Decode Word16 where
   decode = bytestringToWord16
 
 instance Decode FileMode where
-  decode = fmap CMode . decode
+  decode bs = do
+    w32 <- decode bs
+    return $ fromIntegral (w32 :: Word32)
+
 
 instance (Decode a, Decode b) => Decode (a, b) where
   decode = execParser $ (,) <$> extractValue <*> extractValue
