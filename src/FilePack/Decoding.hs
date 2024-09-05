@@ -1,19 +1,19 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE OverloadedStrings #-}
 module FilePack.Decoding where
 
 import Data.Bits ((.|.), shift)
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BC
+import Control.Applicative
 import Control.Monad ( when )
 import Data.Word (Word8, Word16, Word32)
 import Data.Text (Text)
 import Data.Text.Encoding (decodeUtf8)
 import System.Posix.Types (FileMode, CMode(..))
-
-import Debug.Trace (trace)
 
 
 class Decode a where
@@ -128,22 +128,16 @@ instance Applicative FilePackParser where
 
 extractValue :: Decode a => FilePackParser a
 extractValue = FilePackParser $ \input -> do
-  trace ("Input length: " ++ show (BS.length input)) $ return ()
   when (BS.length input < 4) $
     Left "Input has less than 4 bytes, we can't get a segment size"
   
   let (rawSegmentSize, rest) = BS.splitAt 4 input
-  trace ("Raw segment size: " ++ show rawSegmentSize) $ return ()
-  trace ("Rest length after segment size: " ++ show (BS.length rest)) $ return ()
   segmentSize <- fromIntegral <$> bytestringToWord32 rawSegmentSize
-  trace ("Segment size: " ++ show segmentSize) $ return ()
 
   when (BS.length rest < segmentSize) $
     Left "not enough input to parse the next value"
 
   let (rawSegmentVal, rest') = BS.splitAt segmentSize rest
-  trace ("Raw segment value length: " ++ show (BS.length rawSegmentVal)) $ return ()
-  trace ("Rest length after segment value: " ++ show (BS.length rest')) $ return ()
 
   case decode rawSegmentVal of
     Left err -> Left err
@@ -151,3 +145,26 @@ extractValue = FilePackParser $ \input -> do
 
 execParser :: FilePackParser a -> ByteString -> Either String a
 execParser parser inputStr = fst <$> runParser parser inputStr
+
+instance Alternative FilePackParser where
+  empty = FilePackParser $ const (Left "empty parser")
+  parserA <|> parserB = FilePackParser $ \s ->
+    case runParser parserA s of
+      Right val -> Right val
+      Left _ -> runParser parserB s
+
+instance {-# OVERLAPPABLE #-} Decode a => Decode [a] where
+  decode = execParser (many extractValue)
+
+instance Monad FilePackParser where
+  return :: a -> FilePackParser a
+  return = pure
+
+  (>>=) :: FilePackParser a -> (a -> FilePackParser b) -> FilePackParser b
+  valParser >>= mkParser = FilePackParser $ \input -> do
+    (val, rest) <- runParser valParser input
+    runParser (mkParser val) rest
+
+instance MonadFail FilePackParser where
+  fail :: String -> FilePackParser a
+  fail err = FilePackParser (const $ Left err)

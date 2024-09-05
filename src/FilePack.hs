@@ -50,32 +50,6 @@ instance Decode a => Decode (FileData a) where
     <*> extractValue
     <*> extractValue
 
--- Example
-data SomeRecord = SomeRecord
-  { recordNumber :: Word32
-  , recordString :: String
-  , recordTuple  :: (Word32, String)
-  } deriving (Eq, Show)
-
-exampleRecord :: SomeRecord
-exampleRecord = SomeRecord 1 "two" (3, "four")
-
-packRecord :: SomeRecord -> ByteString
-packRecord SomeRecord{..} =
-  encodeWithSize recordNumber
-  <> encodeWithSize recordString
-  <> encodeWithSize (fst recordTuple)
-  <> encodeWithSize (snd recordTuple)
-
-someRecordParser :: ByteString -> Either String SomeRecord
-someRecordParser = execParser $ SomeRecord
-  <$> extractValue
-  <*> extractValue
-  <*> extractTuple
-  where
-    extractTuple :: FilePackParser (Word32, String)
-    extractTuple = (,) <$> extractValue <*> extractValue
-
 testRoundTrip :: (Encode a, Decode a, Show a, Eq a) => a -> IO ()
 testRoundTrip val = case decode (encode val) of
   Left err -> putStrLn $ "Failed to round-trip value: " <> err
