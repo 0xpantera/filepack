@@ -5,7 +5,6 @@
 module FilePack where
 
 
-import Data.ByteString (ByteString)
 import Data.Word (Word32)
 import System.Posix.Types (FileMode)
 import FilePack.Encoding

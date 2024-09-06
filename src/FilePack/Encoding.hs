@@ -9,7 +9,7 @@ import qualified Data.ByteString.Char8 as BC
 import Data.Word (Word8, Word16, Word32)
 import Data.Text (Text)
 import Data.Text.Encoding (encodeUtf8)
-import System.Posix.Types (FileMode, CMode(..))
+import System.Posix.Types (FileMode)
 
 
 class Encode a where
