@@ -1,14 +1,15 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Transformers.ExceptState where
 
-import Control.Applicative
-import Control.Monad (when, void)
+import Control.Applicative ()
+import Control.Monad (when)
 import Data.Text (Text)
 import qualified Data.Text as T
-import ExceptT
-import StateT
-import State
-import Identity
+import Transformers.ExceptT
+import Transformers.StateT ()
+import Transformers.State
+import qualified Transformers.State as S
+import Transformers.Identity 
 
 type ParseError = Text
 type ParseState = Text
@@ -21,11 +22,11 @@ runParser input parser =
 
 parseChar :: Parser Char
 parseChar = do
-  parseState <- succeed State.get
+  parseState <- succeed S.get
   case T.uncons parseState of
     Nothing -> throwError "end of input"
     Just (c, rest) -> do
-      succeed $ State.put rest
+      succeed $ S.put rest
       pure c
 
 char :: Char -> Parser ()
