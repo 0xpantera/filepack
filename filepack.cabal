@@ -70,6 +70,8 @@ library
                     , Transformers.StateT
                     , Transformers.ExceptState
                     , Transformers.Identity
+                    , Transformers.Archiver
+                    , Transformers.MonadTrans
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:

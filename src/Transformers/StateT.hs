@@ -3,6 +3,7 @@
 module Transformers.StateT where
 
 import Control.Applicative
+import Transformers.MonadTrans
 
 newtype StateT s m a = 
     StateT { runStateT :: s -> m (a, s) }
@@ -45,6 +46,10 @@ instance (Monad m, Alternative m) => Alternative (StateT s m) where
 
   a <|> b = StateT $ \s ->
     runStateT a s <|> runStateT b s
+
+instance MonadTrans (StateT s) where
+  lift :: Monad m => m a -> StateT s m a
+  lift m = StateT $ \s -> (,s) <$> m
 
 put :: Monad m => s -> StateT s m ()
 put state = StateT $ \_ -> pure ((), state)
