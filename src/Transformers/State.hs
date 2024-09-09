@@ -1,5 +1,5 @@
 {-# LANGUAGE InstanceSigs #-}
-module State where
+module Transformers.State where
 
 import Data.Text (Text)
 import Data.Char (isSpace)

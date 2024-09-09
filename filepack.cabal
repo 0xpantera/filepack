@@ -64,6 +64,12 @@ library
     -- Modules included in this library but not exported.
     other-modules:    FilePack.Encoding
                     , FilePack.Decoding
+                    , Transformers.State
+                    , Transformers.ExceptT
+                    , Transformers.ExceptTParser
+                    , Transformers.StateT
+                    , Transformers.ExceptState
+                    , Transformers.Identity
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:

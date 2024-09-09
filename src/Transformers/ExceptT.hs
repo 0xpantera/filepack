@@ -1,6 +1,6 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE InstanceSigs #-}
-module ExceptT where
+module Transformers.ExceptT where
 
 import Control.Applicative
 import Data.Kind (Type)
@@ -32,6 +32,19 @@ instance Monad m => Monad (ExceptT e m) where
       case a of
         Left err -> pure (Left err)
         Right a' -> runExceptT $ ef a'
+
+instance (Monoid e, Monad m) => Alternative (ExceptT e m) where
+  empty = ExceptT (pure $ Left mempty)
+
+  a <|> b = ExceptT $ do
+    a' <- runExceptT a
+    case a' of
+      Right val -> pure (Right val)
+      Left err -> do
+        b' <- runExceptT b
+        case b' of
+          Right val' -> pure (Right val')
+          Left err' -> pure (Left $ err <> err')
 
 throwError :: Monad m => e -> ExceptT e m a
 throwError exception = ExceptT (pure $ Left exception)

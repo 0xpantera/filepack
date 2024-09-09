@@ -1,4 +1,4 @@
-module ExceptTParser where
+module Transformers.ExceptTParser where
 
 import ExceptT
 import Control.Monad

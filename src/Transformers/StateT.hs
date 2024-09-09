@@ -1,6 +1,8 @@
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE TupleSections #-}
-module StateT where
+module Transformers.StateT where
+
+import Control.Applicative
 
 newtype StateT s m a = 
     StateT { runStateT :: s -> m (a, s) }
@@ -38,9 +40,17 @@ instance Monad m => Monad (StateT s m) where
     (b, s') <- runStateT a s
     runStateT (f b) s'
 
+instance (Monad m, Alternative m) => Alternative (StateT s m) where
+  empty = StateT $ const empty
+
+  a <|> b = StateT $ \s ->
+    runStateT a s <|> runStateT b s
+
 put :: Monad m => s -> StateT s m ()
 put state = StateT $ \_ -> pure ((), state)
 
 get :: Monad m => StateT s m s
 get = StateT $ \state -> pure (state, state)
 
+liftStateT :: Monad m => m a -> StateT s m a
+liftStateT a = StateT $ \s -> (, s) <$> a
