@@ -1,6 +1,13 @@
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE TupleSections #-}
-module Transformers.StateT where
+module Transformers.StateT (
+  StateT(..),
+  evalStateT,
+  execStateT,
+  put,
+  get,
+  liftStateT
+) where
 
 import Control.Applicative
 import Transformers.MonadTrans

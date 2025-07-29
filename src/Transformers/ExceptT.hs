@@ -1,6 +1,11 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE InstanceSigs #-}
-module Transformers.ExceptT where
+module Transformers.ExceptT (
+  ExceptT(..),
+  throwError,
+  catchError,
+  succeed
+) where
 
 import Control.Applicative
 import Data.Kind (Type)

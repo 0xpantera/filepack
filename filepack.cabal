@@ -72,6 +72,9 @@ library
                     , Transformers.Identity
                     , Transformers.Archiver
                     , Transformers.MonadTrans
+                    , Transformers.MonadState
+                    , Transformers.MonadError
+                    , Transformers.MonadIO
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
